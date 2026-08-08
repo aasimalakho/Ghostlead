@@ -1,5 +1,10 @@
 import "dotenv/config";
-import sample from "../examples/sample-lead.json";
+import { readFileSync } from "fs";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const sample = JSON.parse(readFileSync(join(__dirname, "../examples/sample-lead.json"), "utf-8"));
 
 const port = process.env.PORT ?? "3000";
 const url = `http://localhost:${port}/api/leads`;
