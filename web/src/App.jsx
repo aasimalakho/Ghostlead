@@ -3,46 +3,50 @@
 // renders whatever leads actually exist, in their real CALL-E-reported
 // state. No mock data generator here anymore.
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { ArrowUpRight, Flame, Radio, RefreshCw, Search, PhoneCall } from "lucide-react";
+import { ArrowUpRight, Flame, Radio, RefreshCw, Search, PhoneCall, Sparkles } from "lucide-react";
 
 // Vite bakes VITE_* vars in at build time — set VITE_API_URL in your host's
 // env vars (Render: Static Site -> Environment) and rebuild for it to apply.
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 /* ================================================================== */
-/* Design tokens — kept as CSS custom properties so every component   */
-/* below pulls from one palette instead of scattering hex values.     */
+/* Design tokens                                                      */
 /* ================================================================== */
 function DesignTokens() {
   return (
     <style>{`
-      @import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+      @import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 
       .gl-root {
-        --bg: #F7F6FC;
+        --bg: #F5F4FC;
         --surface: #FFFFFF;
         --surface-tint: #FAF9FF;
-        --border: #E4DEF6;
-        --border-strong: #D3C9F4;
-        --ink: #1E1B34;
-        --muted: #746E93;
-        --muted-2: #9992B8;
-        --primary: #6D5AE6;
-        --primary-dark: #5343D6;
-        --primary-light: #8C7CF2;
-        --primary-bg: #EEEAFF;
-        --emerald: #0F9D6F;
-        --emerald-bg: #DCFBEE;
-        --blue: #2F7FE0;
-        --blue-bg: #E1EEFF;
+        --border: #E6E0F7;
+        --border-strong: #D2C7F5;
+        --ink: #1B1830;
+        --muted: #6E6890;
+        --muted-2: #9C96BC;
+        --primary: #6D5DFB;
+        --primary-dark: #5334D9;
+        --primary-light: #9385FF;
+        --primary-bg: #EDEAFF;
+        --violet: #7C3AED;
+        --blue: #3B82F6;
+        --blue-bg: #E4EEFF;
+        --emerald: #0EA573;
+        --emerald-bg: #DCFBEC;
         --amber: #C2790A;
         --amber-bg: #FDECC8;
         --red: #DC3A56;
         --red-bg: #FDE2E7;
-        --grad-primary: linear-gradient(135deg, #8674F0 0%, #5B4CDE 100%);
-        --shadow-sm: 0 1px 2px rgba(30,27,52,0.05);
-        --shadow-md: 0 6px 20px rgba(93,79,224,0.10);
-        --shadow-lift: 0 16px 32px rgba(93,79,224,0.16);
+        --grad-primary: linear-gradient(135deg, #8B7BFF 0%, #6D5DFB 55%, #5334D9 100%);
+        --grad-blue: linear-gradient(135deg, #60A5FA 0%, #3B82F6 100%);
+        --grad-emerald: linear-gradient(135deg, #34D6A5 0%, #0EA573 100%);
+        --grad-dark: linear-gradient(155deg, #221B4A 0%, #3B2E82 55%, #5334D9 100%);
+        --shadow-sm: 0 1px 2px rgba(27,24,48,0.05);
+        --shadow-md: 0 8px 24px rgba(109,93,251,0.12);
+        --shadow-lift: 0 20px 40px rgba(109,93,251,0.20);
+        --shadow-glow: 0 0 0 1px rgba(109,93,251,0.08), 0 20px 48px rgba(109,93,251,0.22);
       }
 
       .font-display { font-family: 'Baloo 2', sans-serif; }
@@ -54,46 +58,55 @@ function DesignTokens() {
       @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
       .rise { animation: rise .35s ease-out; }
 
-      @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
-      .float { animation: float 3.2s ease-in-out infinite; }
+      @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+      .float { animation: float 3.4s ease-in-out infinite; }
+      @keyframes float-slow { 0%,100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-10px) rotate(1.5deg); } }
+      .float-slow { animation: float-slow 7s ease-in-out infinite; }
 
-      @keyframes glow-ring { 0%,100% { box-shadow: 0 0 0 0 rgba(15,157,111,0.35); } 50% { box-shadow: 0 0 0 5px rgba(15,157,111,0); } }
+      @keyframes glow-ring { 0%,100% { box-shadow: 0 0 0 0 rgba(14,165,115,0.35); } 50% { box-shadow: 0 0 0 6px rgba(14,165,115,0); } }
       .glow-ring { animation: glow-ring 1.8s ease-out infinite; }
 
-      @keyframes wave { 0%,100% { height: 30%; } 50% { height: 100%; } }
+      @keyframes ripple { 0% { transform: scale(0.9); opacity: .55; } 100% { transform: scale(1.9); opacity: 0; } }
+      .ripple { animation: ripple 2.6s cubic-bezier(.2,.6,.4,1) infinite; }
+
+      @keyframes wave { 0%,100% { height: 25%; } 50% { height: 100%; } }
       .wave-bar { animation: wave 1s ease-in-out infinite; }
 
       @keyframes shimmer { 0% { background-position: -200px 0; } 100% { background-position: 200px 0; } }
       .skeleton {
-        background: linear-gradient(90deg, #EFEBFC 25%, #F7F5FF 37%, #EFEBFC 63%);
+        background: linear-gradient(90deg, #EEEAFC 25%, #F7F5FF 37%, #EEEAFC 63%);
         background-size: 400px 100%;
         animation: shimmer 1.4s ease-in-out infinite;
       }
 
-      .gl-card {
-        transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
-      }
-      .gl-card:hover {
-        transform: translateY(-2px);
-        box-shadow: var(--shadow-lift);
-        border-color: var(--border-strong);
-      }
+      @keyframes dash-flow { to { stroke-dashoffset: -200; } }
+      .dash-flow { animation: dash-flow 6s linear infinite; }
+
+      .gl-card { transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
+      .gl-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lift); border-color: var(--border-strong); }
 
       .gl-btn { transition: transform .12s ease, box-shadow .12s ease, background .12s ease, border-color .12s ease; }
       .gl-btn:hover { transform: translateY(-1px); }
       .gl-btn:active { transform: translateY(0); }
 
-      ::selection { background: #6D5AE6; color: #FFFFFF; }
+      .dot-grid {
+        background-image: radial-gradient(rgba(255,255,255,0.35) 1px, transparent 1px);
+        background-size: 14px 14px;
+      }
+      .dot-grid-dark {
+        background-image: radial-gradient(rgba(109,93,251,0.16) 1px, transparent 1px);
+        background-size: 16px 16px;
+      }
+
+      ::selection { background: #6D5DFB; color: #FFFFFF; }
       input::placeholder { color: var(--muted-2); }
     `}</style>
   );
 }
 
 /* ------------------------------------------------------------------ */
-/* GhostMark — the mascot. A lead that doesn't get called back fast   */
-/* enough "ghosts" you — so the mascot's own solidity tells the story:*/
-/* wide-eyed and opaque when things are moving, fading to a translu-  */
-/* cent outline the moment a lead goes cold or a call fails.          */
+/* GhostMark — brand mascot. Solidity communicates state: opaque and  */
+/* wide-eyed while live, fading to an outline once a lead goes cold.  */
 /* ------------------------------------------------------------------ */
 function GhostMark({ mood = "awake", size = 28, className = "", style = {} }) {
   const moods = {
@@ -128,16 +141,26 @@ function GhostMark({ mood = "awake", size = 28, className = "", style = {} }) {
   );
 }
 
+/** Concentric pulsing rings behind an icon — the "AI is listening" visual cue. */
+function Ripples({ color = "var(--primary)" }) {
+  return (
+    <>
+      <span className="absolute inset-0 rounded-full ripple" style={{ border: `1.5px solid ${color}`, animationDelay: "0s" }} />
+      <span className="absolute inset-0 rounded-full ripple" style={{ border: `1.5px solid ${color}`, animationDelay: "0.9s" }} />
+      <span className="absolute inset-0 rounded-full ripple" style={{ border: `1.5px solid ${color}`, animationDelay: "1.8s" }} />
+    </>
+  );
+}
+
 /* ------------------------------------------------------------------ */
-/* Buttons — one primary (gradient), one secondary (outline), one     */
-/* icon-only, shared across the dashboard.                            */
+/* Buttons                                                             */
 /* ------------------------------------------------------------------ */
 function PrimaryButton({ children, onClick, className = "", type = "button" }) {
   return (
     <button
       type={type}
       onClick={onClick}
-      className={`gl-btn inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-[13px] font-semibold shadow-[0_4px_14px_rgba(93,79,224,0.32)] hover:shadow-[0_8px_20px_rgba(93,79,224,0.4)] ${className}`}
+      className={`gl-btn inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-white text-[13px] font-semibold shadow-[0_6px_16px_rgba(109,93,251,0.38)] hover:shadow-[0_10px_24px_rgba(109,93,251,0.46)] ${className}`}
       style={{ background: "var(--grad-primary)" }}
     >
       {children}
@@ -160,72 +183,81 @@ function IconButton({ icon: Icon, label, onClick, spinning = false, className = 
 }
 
 /* ------------------------------------------------------------------ */
-/* ConnectionBadge — communicates live SSE state at a glance.         */
+/* ConnectionBadge                                                     */
 /* ------------------------------------------------------------------ */
 function ConnectionBadge({ connected }) {
   if (connected) {
     return (
-      <div className="flex items-center gap-1.5 text-[12px] font-mono font-medium px-3 py-1.5 rounded-full text-[var(--emerald)] bg-[var(--emerald-bg)]">
-        <span className="relative flex w-2 h-2">
-          <span className="w-2 h-2 rounded-full bg-[var(--emerald)] glow-ring" />
-        </span>
+      <div className="flex items-center gap-2 text-[12px] font-mono font-medium px-3 py-1.5 rounded-full text-[var(--emerald)] bg-[var(--emerald-bg)] shadow-[0_1px_2px_rgba(14,165,115,0.15)]">
+        <span className="w-2 h-2 rounded-full bg-[var(--emerald)] glow-ring" />
         Connected
       </div>
     );
   }
   return (
-    <div className="flex items-center gap-1.5 text-[12px] font-mono font-medium px-3 py-1.5 rounded-full text-[var(--amber)] bg-[var(--amber-bg)]">
-      <span className="w-2 h-2 rounded-full bg-[var(--amber)] pulse-dot" />
+    <div className="flex items-center gap-2 text-[12px] font-mono font-medium px-3 py-1.5 rounded-full text-[var(--primary)] bg-[var(--primary-bg)]">
+      <span className="w-2 h-2 rounded-full bg-[var(--primary)] pulse-dot" />
       Connecting…
     </div>
   );
 }
 
 /* ------------------------------------------------------------------ */
-/* MetricCard — rich stat card with icon chip + contextual caption.   */
-/* Never shows a number the app didn't actually compute.              */
+/* MetricCard — tinted gradient surface + decorative corner pattern.  */
+/* Numbers/captions are always real, derived state — never invented.  */
 /* ------------------------------------------------------------------ */
-function MetricCard({ icon, label, value, caption, tint, accent, loading }) {
+function MetricCard({ icon, label, value, caption, grad, tint, accent, loading }) {
   return (
-    <div className="gl-card rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[var(--shadow-sm)]">
-      <div className="flex items-center gap-2 mb-3">
+    <div
+      className="gl-card relative overflow-hidden rounded-2xl border border-[var(--border)] p-5 shadow-[var(--shadow-sm)]"
+      style={{ background: tint }}
+    >
+      <div className="dot-grid-dark pointer-events-none absolute -right-4 -bottom-4 w-24 h-24 opacity-70" style={{ maskImage: "radial-gradient(circle, black, transparent 70%)" }} />
+      <div className="relative flex items-center gap-2.5 mb-4">
         <span
-          className="w-8 h-8 rounded-xl flex items-center justify-center"
-          style={{ background: tint, color: accent }}
+          className="w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-[0_4px_10px_rgba(0,0,0,0.12)]"
+          style={{ background: grad }}
         >
           {icon}
         </span>
-        <span className="text-[11px] font-mono uppercase tracking-wider text-[var(--muted)]">{label}</span>
+        <span className="text-[12px] font-semibold text-[var(--ink)]">{label}</span>
       </div>
       {loading ? (
         <>
-          <div className="skeleton h-8 w-20 rounded-lg mb-2" />
+          <div className="skeleton h-9 w-20 rounded-lg mb-2" />
           <div className="skeleton h-3 w-32 rounded" />
         </>
       ) : (
-        <>
-          <div className="font-display font-bold text-[32px] leading-none mb-1.5" style={{ color: accent }}>
+        <div className="relative">
+          <div className="font-display font-extrabold text-[34px] leading-none mb-1.5" style={{ color: accent }}>
             {value}
           </div>
           <div className="text-[13px] text-[var(--muted)]">{caption}</div>
-        </>
+        </div>
       )}
     </div>
   );
 }
 
 /* ------------------------------------------------------------------ */
-/* EmptyState — reusable, designed placeholder for any section that   */
-/* currently has nothing real to show.                                */
+/* EmptyState — big glowing orb + ripples, not just a small icon.     */
 /* ------------------------------------------------------------------ */
-function EmptyState({ mood = "sleepy", title, description, action }) {
+function EmptyState({ mood = "sleepy", accent = "var(--primary)", accentBg = "var(--primary-bg)", title, description, action }) {
   return (
-    <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-[var(--border-strong)] bg-[var(--surface-tint)] p-10 text-center">
-      <div className="w-14 h-14 rounded-2xl bg-white flex items-center justify-center shadow-[var(--shadow-sm)]">
-        <GhostMark mood={mood} size={30} className="text-[var(--primary-light)] float" />
+    <div className="flex flex-col items-center gap-4 rounded-2xl border border-dashed border-[var(--border-strong)] bg-[var(--surface-tint)] px-8 py-12 text-center">
+      <div className="relative w-20 h-20 flex items-center justify-center">
+        <Ripples color={accent} />
+        <div
+          className="relative w-16 h-16 rounded-full flex items-center justify-center shadow-[var(--shadow-md)]"
+          style={{ background: accentBg }}
+        >
+          <GhostMark mood={mood} size={34} className="float" style={{ color: accent }} />
+        </div>
       </div>
-      <div className="font-display font-semibold text-[15px] text-[var(--ink)]">{title}</div>
-      <p className="text-[13px] text-[var(--muted)] max-w-[320px] leading-snug">{description}</p>
+      <div>
+        <div className="font-display font-bold text-[16px] text-[var(--ink)] mb-1.5">{title}</div>
+        <p className="text-[13px] text-[var(--muted)] max-w-[340px] leading-relaxed mx-auto">{description}</p>
+      </div>
       {action}
     </div>
   );
@@ -242,10 +274,7 @@ function ResponseRing({ pct, size = 52, urgent }) {
         background: `conic-gradient(${urgent ? "var(--red)" : "var(--primary)"} ${deg}deg, var(--primary-bg) ${deg}deg)`,
       }}
     >
-      <div
-        className="absolute rounded-full bg-white flex items-center justify-center"
-        style={{ width: size - 8, height: size - 8 }}
-      />
+      <div className="absolute rounded-full bg-white flex items-center justify-center" style={{ width: size - 8, height: size - 8 }} />
     </div>
   );
 }
@@ -259,11 +288,7 @@ function StatusPill({ status }) {
     error: { label: "Call failed", cls: "text-[var(--red)] bg-[var(--red-bg)]" },
   };
   const m = map[status] || map.new;
-  return (
-    <span className={`text-[11px] font-mono uppercase tracking-wider px-2 py-1 rounded-full ${m.cls}`}>
-      {m.label}
-    </span>
-  );
+  return <span className={`text-[11px] font-mono uppercase tracking-wider px-2 py-1 rounded-full ${m.cls}`}>{m.label}</span>;
 }
 
 const STATUS_BAR_COLOR = {
@@ -274,7 +299,6 @@ const STATUS_BAR_COLOR = {
   error: "var(--red)",
 };
 
-/** Seconds since a lead was created — recomputed every tick so the ring animates. */
 function useElapsedSeconds(createdAt, tick) {
   return useMemo(() => {
     if (!createdAt) return 0;
@@ -288,26 +312,17 @@ function LeadRow({ lead, tick }) {
   const urgent = lead.status === "new" && countdown <= 20;
 
   return (
-    <div
-      className="rise gl-card flex items-center gap-3 p-3 rounded-2xl border border-[var(--border)] bg-white shadow-[var(--shadow-sm)] relative overflow-hidden"
-    >
-      <span
-        className="absolute left-0 top-0 bottom-0 w-[3px]"
-        style={{ background: STATUS_BAR_COLOR[lead.status] || "var(--border-strong)" }}
-      />
+    <div className="rise gl-card flex items-center gap-3 p-3 rounded-2xl border border-[var(--border)] bg-white shadow-[var(--shadow-sm)] relative overflow-hidden">
+      <span className="absolute left-0 top-0 bottom-0 w-[3px]" style={{ background: STATUS_BAR_COLOR[lead.status] || "var(--border-strong)" }} />
       {lead.status === "new" ? (
         <div className="relative ml-1">
           <ResponseRing pct={(countdown / 60) * 100} urgent={urgent} />
-          <span className="absolute inset-0 flex items-center justify-center font-mono text-[13px] text-[var(--ink)]">
-            {countdown}
-          </span>
+          <span className="absolute inset-0 flex items-center justify-center font-mono text-[13px] text-[var(--ink)]">{countdown}</span>
         </div>
       ) : (
         <div className="ml-1 w-[52px] h-[52px] rounded-full flex items-center justify-center bg-[var(--surface-tint)] shrink-0">
           {lead.status === "qualified" && <GhostMark mood="happy" size={30} className="text-[var(--emerald)]" />}
-          {(lead.status === "cold" || lead.status === "error") && (
-            <GhostMark mood="faint" size={30} className="text-[var(--muted-2)]" />
-          )}
+          {(lead.status === "cold" || lead.status === "error") && <GhostMark mood="faint" size={30} className="text-[var(--muted-2)]" />}
           {lead.status === "connecting" && <GhostMark mood="oncall" size={30} className="text-[var(--primary)] pulse-dot" />}
         </div>
       )}
@@ -319,9 +334,7 @@ function LeadRow({ lead, tick }) {
         <div className="mt-1 flex items-center flex-wrap gap-x-2 gap-y-1">
           <StatusPill status={lead.status} />
           {lead.responseTimeSeconds != null && (
-            <span className="text-[11px] font-mono text-[var(--muted)]">
-              connected in {lead.responseTimeSeconds}s
-            </span>
+            <span className="text-[11px] font-mono text-[var(--muted)]">connected in {lead.responseTimeSeconds}s</span>
           )}
         </div>
       </div>
@@ -342,38 +355,114 @@ function LeadRowSkeleton() {
 }
 
 /* ------------------------------------------------------------------ */
-/* ActivityPanel — uses the previously-empty space below the fold.    */
-/* Never fabricates a data series; this project doesn't currently     */
-/* track a leads-per-day history, so it renders a designed empty      */
-/* state instead of an invented chart.                                */
+/* Hero — the visual focal point the previous pass was missing.       */
+/* Greeting is derived from the real client clock (not fabricated     */
+/* personalization); everything else reflects the real `connected`    */
+/* state.                                                              */
 /* ------------------------------------------------------------------ */
-function ActivityPanel({ leadsCount }) {
-  const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-  return (
-    <div className="gl-card rounded-2xl border border-[var(--border)] bg-white p-6 shadow-[var(--shadow-sm)]">
-      <div className="flex items-center justify-between mb-1">
-        <h2 className="font-display text-[15px] font-semibold text-[var(--ink)]">Lead activity</h2>
-        <span className="text-[11px] font-mono text-[var(--muted)]">{leadsCount} total this session</span>
-      </div>
-      <p className="text-[13px] text-[var(--muted)] mb-5">Response trends will populate as leads arrive.</p>
+function Hero({ connected }) {
+  const greeting = useMemo(() => {
+    const h = new Date().getHours();
+    if (h < 5) return "Working late";
+    if (h < 12) return "Good morning";
+    if (h < 18) return "Good afternoon";
+    return "Good evening";
+  }, []);
 
-      <div className="relative h-28 rounded-xl bg-[var(--surface-tint)] border border-dashed border-[var(--border-strong)] flex items-end justify-between px-6 pb-6 pt-4 overflow-hidden">
-        <svg className="absolute inset-x-6 top-4 bottom-6" viewBox="0 0 300 60" preserveAspectRatio="none" fill="none">
-          <path
-            d="M0 45 Q 25 40, 50 44 T 100 40 T 150 46 T 200 38 T 250 42 T 300 36"
-            stroke="var(--border-strong)"
-            strokeWidth="2"
-            strokeDasharray="5 6"
-            strokeLinecap="round"
-          />
-        </svg>
-        {days.map((d) => (
-          <span key={d} className="relative text-[10px] font-mono uppercase text-[var(--muted-2)]">
-            {d}
+  return (
+    <div
+      className="relative overflow-hidden rounded-3xl p-7 sm:p-9 text-white shadow-[var(--shadow-glow)]"
+      style={{ background: "var(--grad-primary)" }}
+    >
+      <div className="dot-grid pointer-events-none absolute inset-0 opacity-40" />
+      <div className="pointer-events-none absolute -top-16 -right-10 w-64 h-64 rounded-full bg-white/10 blur-3xl float-slow" />
+      <div className="pointer-events-none absolute -bottom-20 left-10 w-72 h-72 rounded-full bg-[#4C2FD6]/40 blur-3xl" />
+
+      <div className="relative flex items-start justify-between gap-6 flex-wrap">
+        <div className="max-w-[440px]">
+          <div className="flex items-center gap-1.5 text-[12px] font-mono uppercase tracking-wider text-white/70 mb-2">
+            <Sparkles size={13} />
+            {greeting}
+          </div>
+          <h1 className="font-display font-extrabold text-[26px] sm:text-[30px] leading-tight mb-2">
+            GhostLead is {connected ? "ready to respond" : "waking up"}.
+          </h1>
+          <p className="text-[14px] text-white/80 leading-relaxed">
+            {connected
+              ? "Your lead response engine is online and waiting for the next opportunity."
+              : "Reconnecting to your lead response engine — this only takes a moment."}
+          </p>
+        </div>
+
+        <div className="flex flex-col items-center gap-2 shrink-0">
+          <div className="relative w-20 h-20 flex items-center justify-center">
+            <Ripples color="rgba(255,255,255,0.7)" />
+            <div className="relative w-16 h-16 rounded-full bg-white/15 border border-white/25 backdrop-blur-sm flex items-center justify-center">
+              <GhostMark mood={connected ? "awake" : "sleepy"} size={36} className="text-white float" />
+            </div>
+          </div>
+          <span className={`text-[11px] font-mono uppercase tracking-wider px-2.5 py-1 rounded-full ${connected ? "bg-white/20 text-white" : "bg-white/10 text-white/70"}`}>
+            {connected ? "Live" : "Connecting"}
           </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* SystemStatus — deep-gradient accent panel. Only shows signals the  */
+/* app can genuinely observe: the SSE connection, and a real ping to  */
+/* the backend's existing GET /health endpoint (no fabricated rows).  */
+/* ------------------------------------------------------------------ */
+function SystemStatus({ connected, apiHealthy }) {
+  const rows = [
+    { label: "Live lead feed", ok: connected === true, pending: connected !== true },
+    { label: "Backend API", ok: apiHealthy === true, pending: apiHealthy === null, failed: apiHealthy === false },
+  ];
+  return (
+    <div className="relative overflow-hidden rounded-2xl p-5 text-white shadow-[var(--shadow-md)]" style={{ background: "var(--grad-dark)" }}>
+      <div className="dot-grid pointer-events-none absolute inset-0 opacity-[0.12]" />
+      <h2 className="relative text-[11px] font-mono uppercase tracking-wider text-white/60 mb-4">System status</h2>
+      <div className="relative space-y-3">
+        {rows.map((r) => (
+          <div key={r.label} className="flex items-center justify-between text-[13px]">
+            <span className="text-white/85">{r.label}</span>
+            <span className={`flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-wide ${r.ok ? "text-emerald-300" : r.failed ? "text-red-300" : "text-amber-200"}`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${r.ok ? "bg-emerald-300 pulse-dot" : r.failed ? "bg-red-300" : "bg-amber-200 pulse-dot"}`} />
+              {r.ok ? "Operational" : r.failed ? "Unreachable" : "Checking…"}
+            </span>
+          </div>
         ))}
       </div>
-      <p className="text-center text-[12px] text-[var(--muted-2)] mt-3">Lead activity will appear here once GhostLead starts receiving leads.</p>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* ActivityPanel — abstract decorative wave instead of a chart that   */
+/* implies a data series that doesn't exist yet.                      */
+/* ------------------------------------------------------------------ */
+function ActivityPanel({ leadsCount }) {
+  return (
+    <div className="gl-card relative overflow-hidden rounded-2xl border border-[var(--border)] p-6 shadow-[var(--shadow-sm)]" style={{ background: "linear-gradient(160deg, #F7F5FF 0%, #FFFFFF 60%)" }}>
+      <div className="flex items-center justify-between mb-1">
+        <h2 className="font-display text-[16px] font-bold text-[var(--ink)]">Lead activity</h2>
+        <span className="text-[11px] font-mono text-[var(--muted)]">{leadsCount} total this session</span>
+      </div>
+      <p className="text-[13px] text-[var(--muted)] mb-5">{leadsCount === 0 ? "No activity yet" : "Live session snapshot"}</p>
+
+      <div className="relative h-32 rounded-xl overflow-hidden" style={{ background: "linear-gradient(180deg, #EFEBFF 0%, #F9F7FF 100%)" }}>
+        <svg className="absolute inset-0 w-full h-full" viewBox="0 0 400 100" preserveAspectRatio="none" fill="none">
+          <path d="M0 70 C 40 40, 80 85, 120 55 S 200 30, 240 60 S 320 85, 360 45 S 400 55, 400 55" stroke="var(--primary-light)" strokeWidth="2.5" strokeLinecap="round" opacity="0.55" />
+          <path d="M0 55 C 40 75, 90 35, 130 60 S 210 80, 250 45 S 330 25, 400 50" stroke="var(--blue)" strokeWidth="2" strokeLinecap="round" strokeDasharray="1 8" className="dash-flow" opacity="0.5" />
+        </svg>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="text-[12px] font-medium text-[var(--muted)] bg-white/70 backdrop-blur-sm px-3 py-1.5 rounded-full border border-[var(--border)]">
+            Your lead activity timeline will appear here once GhostLead starts receiving leads.
+          </span>
+        </div>
+      </div>
     </div>
   );
 }
@@ -384,6 +473,7 @@ export default function GhostLeadDashboard() {
   const [tick, setTick] = useState(0);
   const [streamKey, setStreamKey] = useState(0);
   const [query, setQuery] = useState("");
+  const [apiHealthy, setApiHealthy] = useState(null);
 
   // Live connection to the backend. `streamKey` lets the refresh button
   // force a clean re-subscribe without touching any backend behavior.
@@ -402,6 +492,28 @@ export default function GhostLeadDashboard() {
     return () => source.close();
   }, [streamKey]);
 
+  // Real health check against the backend's existing GET /health route —
+  // this is the actual signal behind the "System status" panel, not a
+  // fabricated one.
+  useEffect(() => {
+    let cancelled = false;
+    const checkHealth = () => {
+      fetch(`${API_URL}/health`)
+        .then((r) => {
+          if (!cancelled) setApiHealthy(r.ok);
+        })
+        .catch(() => {
+          if (!cancelled) setApiHealthy(false);
+        });
+    };
+    checkHealth();
+    const h = setInterval(checkHealth, 20000);
+    return () => {
+      cancelled = true;
+      clearInterval(h);
+    };
+  }, [streamKey]);
+
   // Local clock, just to animate the countdown ring every second
   useEffect(() => {
     const t = setInterval(() => setTick((n) => n + 1), 1000);
@@ -414,94 +526,86 @@ export default function GhostLeadDashboard() {
   const lastResolved = leads.find((l) => l.status === "qualified" || l.status === "cold");
   const qualifiedCount = leads.filter((l) => l.status === "qualified").length;
   const resolved = leads.filter((l) => l.responseTimeSeconds != null);
-  const avgResponse = resolved.length
-    ? Math.round(resolved.reduce((a, l) => a + l.responseTimeSeconds, 0) / resolved.length)
-    : 0;
+  const avgResponse = resolved.length ? Math.round(resolved.reduce((a, l) => a + l.responseTimeSeconds, 0) / resolved.length) : 0;
   const qualificationRate = leads.length ? Math.round((qualifiedCount / leads.length) * 100) : null;
 
   const filteredLeads = query.trim()
     ? leads.filter(
-        (l) =>
-          l.name?.toLowerCase().includes(query.trim().toLowerCase()) ||
-          l.source?.toLowerCase().includes(query.trim().toLowerCase())
+        (l) => l.name?.toLowerCase().includes(query.trim().toLowerCase()) || l.source?.toLowerCase().includes(query.trim().toLowerCase())
       )
     : leads;
 
   return (
-    <div
-      className="gl-root min-h-screen w-full relative overflow-hidden"
-      style={{ background: "var(--bg)", color: "var(--ink)", fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}
-    >
+    <div className="gl-root min-h-screen w-full relative overflow-hidden" style={{ background: "var(--bg)", color: "var(--ink)", fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>
       <DesignTokens />
 
-      {/* ambient mist — signature background touch */}
-      <div className="pointer-events-none absolute -top-24 -left-24 w-[440px] h-[440px] rounded-full opacity-50 blur-3xl" style={{ background: "radial-gradient(circle, #E3DBFF 0%, transparent 70%)" }} />
-      <div className="pointer-events-none absolute top-52 -right-32 w-[500px] h-[500px] rounded-full opacity-40 blur-3xl" style={{ background: "radial-gradient(circle, #D6EAFF 0%, transparent 70%)" }} />
-      <div className="pointer-events-none absolute bottom-0 left-1/3 w-[400px] h-[400px] rounded-full opacity-30 blur-3xl" style={{ background: "radial-gradient(circle, #D2F7EC 0%, transparent 70%)" }} />
+      {/* ambient atmosphere behind the whole page */}
+      <div className="pointer-events-none fixed -top-32 -left-32 w-[560px] h-[560px] rounded-full opacity-60 blur-3xl" style={{ background: "radial-gradient(circle, #DDD3FF 0%, transparent 70%)" }} />
+      <div className="pointer-events-none fixed top-0 -right-40 w-[520px] h-[520px] rounded-full opacity-50 blur-3xl" style={{ background: "radial-gradient(circle, #CFE3FF 0%, transparent 70%)" }} />
+      <div className="pointer-events-none fixed bottom-[-10%] left-1/3 w-[460px] h-[460px] rounded-full opacity-40 blur-3xl" style={{ background: "radial-gradient(circle, #CFF7E8 0%, transparent 70%)" }} />
 
-      <div className="relative max-w-[1200px] mx-auto px-4 sm:px-6">
-        <header className="py-5 flex items-center justify-between gap-3 flex-wrap border-b border-[var(--border)]">
+      <div className="relative max-w-[1240px] mx-auto px-4 sm:px-6">
+        <header className="py-5 flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-3">
-            <div
-              className="w-10 h-10 rounded-2xl flex items-center justify-center shadow-[0_4px_14px_rgba(93,79,224,0.35)]"
-              style={{ background: "var(--grad-primary)" }}
-            >
-              <GhostMark mood={connected ? "awake" : "sleepy"} size={24} className="text-white float" />
+            <div className="w-11 h-11 rounded-2xl flex items-center justify-center shadow-[0_6px_18px_rgba(109,93,251,0.4)]" style={{ background: "var(--grad-primary)" }}>
+              <GhostMark mood={connected ? "awake" : "sleepy"} size={26} className="text-white float" />
             </div>
             <div className="leading-tight">
-              <div className="flex items-center gap-2">
-                <span className="font-display font-bold text-[20px] tracking-tight">GhostLead</span>
-                <span className="hidden sm:inline text-[11px] font-mono uppercase tracking-wider text-[var(--primary)] bg-[var(--primary-bg)] px-2 py-0.5 rounded-full">
-                  Response Console
-                </span>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-display font-extrabold text-[21px] tracking-tight">GhostLead</span>
+                <span className="text-[11px] font-mono uppercase tracking-wider text-[var(--primary)] bg-[var(--primary-bg)] px-2 py-0.5 rounded-full">Response Console</span>
               </div>
-              <span className="sm:hidden text-[12px] text-[var(--muted)]">Response Console</span>
             </div>
           </div>
           <ConnectionBadge connected={connected} />
         </header>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 py-6">
+        <div className="pb-6">
+          <Hero connected={connected} />
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pb-6">
           <MetricCard
-            icon={<GhostMark mood="awake" size={16} />}
+            icon={<GhostMark mood="awake" size={17} />}
             label="Leads received"
             value={leads.length}
             caption={leads.length === 0 ? "Waiting for first lead" : `${resolved.length} resolved so far`}
-            tint="var(--primary-bg)"
-            accent="var(--primary)"
+            grad="var(--grad-primary)"
+            tint="linear-gradient(160deg, #F0ECFF 0%, #FFFFFF 65%)"
+            accent="var(--primary-dark)"
             loading={!connected}
           />
           <MetricCard
-            icon={<ArrowUpRight size={15} />}
-            label="Avg. response time"
+            icon={<ArrowUpRight size={16} />}
+            label="Avg. response"
             value={resolved.length ? `${avgResponse}s` : "—"}
             caption={resolved.length ? `across ${resolved.length} response${resolved.length === 1 ? "" : "s"}` : "No responses yet"}
-            tint="var(--blue-bg)"
-            accent="var(--blue)"
+            grad="var(--grad-blue)"
+            tint="linear-gradient(160deg, #EAF2FF 0%, #FFFFFF 65%)"
+            accent="#1D5FD1"
             loading={!connected}
           />
           <MetricCard
-            icon={<Flame size={15} />}
-            label="Qualified"
+            icon={<Flame size={16} />}
+            label="Qualified leads"
             value={qualifiedCount}
             caption={qualificationRate === null ? "No leads yet" : `${qualificationRate}% qualification rate`}
-            tint="var(--emerald-bg)"
-            accent="var(--emerald)"
+            grad="var(--grad-emerald)"
+            tint="linear-gradient(160deg, #E5FBF2 0%, #FFFFFF 65%)"
+            accent="#0B8560"
             loading={!connected}
           />
         </div>
 
         <div className="grid lg:grid-cols-[1.15fr_1fr] gap-4 pb-4">
-          <section className="gl-card rounded-2xl border border-[var(--border)] bg-white p-5 shadow-[var(--shadow-sm)]">
+          <section className="gl-card rounded-2xl border border-[var(--border)] border-t-[3px] border-t-[var(--primary)] bg-white p-5 shadow-[var(--shadow-sm)]">
             <div className="flex items-center justify-between gap-3 mb-1 flex-wrap">
               <div>
-                <h2 className="font-display text-[16px] font-semibold text-[var(--ink)]">Leads</h2>
-                <p className="text-[13px] text-[var(--muted)]">Recent incoming opportunities</p>
+                <h2 className="font-display text-[17px] font-bold text-[var(--ink)]">Incoming leads</h2>
+                <p className="text-[13px] text-[var(--muted)]">Recent opportunities</p>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-[11px] font-mono px-2 py-1 rounded-full bg-[var(--primary-bg)] text-[var(--primary)]">
-                  {leads.length}
-                </span>
+                <span className="text-[11px] font-mono px-2 py-1 rounded-full bg-[var(--primary-bg)] text-[var(--primary)]">{leads.length}</span>
                 <IconButton icon={RefreshCw} label="Reconnect live feed" onClick={handleRefresh} spinning={!connected} />
               </div>
             </div>
@@ -519,21 +623,21 @@ export default function GhostLeadDashboard() {
             )}
 
             <div className="space-y-2 mt-4">
-              {!connected &&
-                leads.length === 0 &&
-                [0, 1, 2].map((i) => <LeadRowSkeleton key={i} />)}
+              {!connected && leads.length === 0 && [0, 1, 2].map((i) => <LeadRowSkeleton key={i} />)}
 
               {connected && leads.length === 0 && (
                 <EmptyState
                   mood="sleepy"
+                  accent="var(--primary)"
+                  accentBg="var(--primary-bg)"
                   title="No leads yet"
-                  description={`Your incoming leads will appear here automatically. POST one to ${API_URL}/api/leads and GhostLead will start processing it within seconds.`}
+                  description={`GhostLead is listening for new opportunities. Once one arrives at ${API_URL}/api/leads, it'll appear here automatically.`}
                   action={<PrimaryButton onClick={handleRefresh}>Refresh leads</PrimaryButton>}
                 />
               )}
 
               {leads.length > 0 && filteredLeads.length === 0 && (
-                <EmptyState mood="faint" title="No matches" description="No leads match that search." />
+                <EmptyState mood="faint" accent="var(--muted-2)" accentBg="var(--border)" title="No matches" description="No leads match that search." />
               )}
 
               {filteredLeads.map((lead) => (
@@ -543,40 +647,37 @@ export default function GhostLeadDashboard() {
           </section>
 
           <section className="flex flex-col gap-4">
-            <div className="gl-card rounded-2xl border border-[var(--border)] bg-white p-5 shadow-[var(--shadow-sm)]">
-              <h2 className="font-display text-[16px] font-semibold text-[var(--ink)] mb-1">Active call</h2>
-              <p className="text-[13px] text-[var(--muted)] mb-4">Live conversation status</p>
+            <div className="gl-card rounded-2xl border border-[var(--border)] border-t-[3px] border-t-[var(--blue)] bg-white p-5 shadow-[var(--shadow-sm)]">
+              <h2 className="font-display text-[17px] font-bold text-[var(--ink)] mb-1">Live call</h2>
+              <p className="text-[13px] text-[var(--muted)] mb-4">Active conversation</p>
 
               {activeLead ? (
-                <div className="rounded-2xl border border-[var(--primary-bg)] bg-[var(--primary-bg)]/40 p-4" style={{ background: "linear-gradient(180deg, #F3F0FF 0%, #FFFFFF 100%)" }}>
+                <div className="rounded-2xl p-4" style={{ background: "linear-gradient(180deg, #EAF2FF 0%, #FFFFFF 100%)" }}>
                   <div className="flex items-center justify-between mb-3">
                     <div>
                       <div className="font-display font-semibold text-[16px]">{activeLead.name}</div>
                       <div className="text-[12px] text-[var(--muted)] font-mono">{activeLead.source} lead</div>
                     </div>
-                    <div className="flex items-center gap-1.5 text-[11px] font-mono text-[var(--primary)] bg-white px-2 py-1 rounded-full">
+                    <div className="flex items-center gap-1.5 text-[11px] font-mono text-[var(--blue)] bg-white px-2 py-1 rounded-full">
                       <Radio size={12} className="pulse-dot" /> on call
                     </div>
                   </div>
-                  <div className="flex items-end gap-[3px] h-6 mb-3">
-                    {[0, 1, 2, 3, 4, 5, 6].map((i) => (
-                      <span
-                        key={i}
-                        className="wave-bar w-[3px] rounded-full bg-[var(--primary)]"
-                        style={{ animationDelay: `${i * 0.11}s` }}
-                      />
+                  <div className="flex items-end gap-[3px] h-7 mb-3">
+                    {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
+                      <span key={i} className="wave-bar w-[3px] rounded-full bg-[var(--blue)]" style={{ animationDelay: `${i * 0.1}s` }} />
                     ))}
                   </div>
                   <p className="text-[13px] text-[var(--muted)] leading-snug">
-                    CALL-E is on the phone with this lead now — gathering intent, timeline,
-                    and financing status. Results post here the moment the call ends.
+                    CALL-E is on the phone with this lead now — gathering intent, timeline, and financing status. Results post here the moment the call ends.
                   </p>
                 </div>
               ) : (
                 <EmptyState
                   mood="sleepy"
-                  title="No active call"
-                  description="Your next live lead conversation will appear here the moment CALL-E dials out."
+                  accent="var(--blue)"
+                  accentBg="var(--blue-bg)"
+                  title="No active conversation"
+                  description="GhostLead will show live call intelligence here the moment a lead conversation begins."
                 />
               )}
             </div>
@@ -590,10 +691,7 @@ export default function GhostLeadDashboard() {
                 {lastResolved.qualification ? (
                   <div className="space-y-2 text-[13px]">
                     <div className="flex items-center gap-2">
-                      <span
-                        className="w-2 h-2 rounded-full"
-                        style={{ background: lastResolved.qualification.wants_to_proceed === "yes" ? "var(--emerald)" : "var(--muted-2)" }}
-                      />
+                      <span className="w-2 h-2 rounded-full" style={{ background: lastResolved.qualification.wants_to_proceed === "yes" ? "var(--emerald)" : "var(--muted-2)" }} />
                       Wants to proceed: {lastResolved.qualification.wants_to_proceed}
                     </div>
                     <div className="flex items-center gap-2">
@@ -604,23 +702,19 @@ export default function GhostLeadDashboard() {
                       <span className="w-2 h-2 rounded-full" style={{ background: "var(--muted-2)" }} />
                       Financing in place: {lastResolved.qualification.financing_in_place}
                     </div>
-                    {lastResolved.qualification.notes && (
-                      <p className="text-[var(--muted)] mt-2 text-[12px] leading-snug">
-                        {lastResolved.qualification.notes}
-                      </p>
-                    )}
+                    {lastResolved.qualification.notes && <p className="text-[var(--muted)] mt-2 text-[12px] leading-snug">{lastResolved.qualification.notes}</p>}
                   </div>
                 ) : (
-                  <p className="text-[13px] text-[var(--muted)]">
-                    {lastResolved.transcriptSummary || "No structured result returned for this call."}
-                  </p>
+                  <p className="text-[13px] text-[var(--muted)]">{lastResolved.transcriptSummary || "No structured result returned for this call."}</p>
                 )}
               </div>
             )}
+
+            <SystemStatus connected={connected} apiHealthy={apiHealthy} />
           </section>
         </div>
 
-        <div className="pb-8">
+        <div className="pb-10">
           <ActivityPanel leadsCount={leads.length} />
         </div>
       </div>
