@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto";
 import type { Response } from "express";
-import { IncomingLead, Lead, LeadQualification } from "../types";
+import { IncomingLead, Lead, LeadQualification } from "../types.js";
 
 const leads = new Map<string, Lead>();
 const subscribers = new Set<Response>();
