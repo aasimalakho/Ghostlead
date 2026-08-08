@@ -1,0 +1,18 @@
+services:
+  api:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - CALLE_API_KEY=${CALLE_API_KEY}
+      - CALLE_BASE_URL=${CALLE_BASE_URL}
+      - PUBLIC_BASE_URL=${PUBLIC_BASE_URL:-http://localhost:3000}
+      - PORT=3000
+    env_file:
+      - .env
+    restart: unless-stopped
+
+# The dashboard (web/) is a Vite dev server, meant to be run with
+# `npm run dev` inside web/ during development rather than containerized —
+# see README "Run it" for the two-terminal workflow. Add a web service here
+# with a static-file image (e.g. nginx) once you have a production build.
