@@ -1,8 +1,8 @@
 import "dotenv/config";
 import cors from "cors";
 import express from "express";
-import { leadsRouter } from "./routes/leads";
-import { webhookRouter } from "./routes/webhook";
+import { leadsRouter } from "./routes/leads.js";
+import { webhookRouter } from "./routes/webhook.js";
 
 const app = express();
 app.use(cors());
