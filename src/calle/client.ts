@@ -1,4 +1,5 @@
 import { CalleClient } from "@call-e/calle";
+import { IncomingLead, Lead, LeadQualification } from "../types.js";
 
 /**
  * Single shared CALL-E client for the whole app.
