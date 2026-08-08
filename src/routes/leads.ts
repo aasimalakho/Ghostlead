@@ -1,15 +1,10 @@
 import { Router } from "express";
-import { qualifyLeadByCall } from "../calle/qualifyLead";
-import { createLead, listLeads, markConnecting, markError, subscribe, unsubscribe } from "../store/leadStore";
-import { IncomingLead } from "../types";
+import { qualifyLeadByCall } from "../calle/qualifyLead.js";
+import { createLead, listLeads, markConnecting, markError, subscribe, unsubscribe } from "../store/leadStore.js";
+import { IncomingLead } from "../types.js";
 
 export const leadsRouter = Router();
 
-/**
- * Called by whatever produces your leads today: a website form webhook,
- * Zillow/Autotrader lead export, a CRM automation, or (for the demo)
- * a curl command / examples/sample-lead.json.
- */
 leadsRouter.post("/leads", async (req, res) => {
   const body = req.body as Partial<IncomingLead>;
 
@@ -26,9 +21,6 @@ leadsRouter.post("/leads", async (req, res) => {
     interest: body.interest,
   });
 
-  // Respond immediately so the intake source isn't blocked on call duration —
-  // the whole point is the lead gets called within seconds, not that the
-  // HTTP request that reported the lead hangs open.
   res.status(202).json({ lead });
 
   const publicBaseUrl = process.env.PUBLIC_BASE_URL ?? `http://localhost:${process.env.PORT ?? 3000}`;
@@ -45,7 +37,6 @@ leadsRouter.get("/leads", (_req, res) => {
   res.json({ leads: listLeads() });
 });
 
-/** Server-Sent Events stream the dashboard listens to for live updates. */
 leadsRouter.get("/leads/stream", (req, res) => {
   res.writeHead(200, {
     "Content-Type": "text/event-stream",
