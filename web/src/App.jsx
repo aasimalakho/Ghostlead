@@ -260,3 +260,6 @@ export default function GhostLeadDashboard() {
           )}
         </section>
       </div>
+    </div>
+  );
+}
