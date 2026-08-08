@@ -1,12 +1,6 @@
-import { calle } from "./client";
-import { Lead, LEAD_QUALIFICATION_SCHEMA } from "../types";
+import { calle } from "./client.js";
+import { Lead, LEAD_QUALIFICATION_SCHEMA } from "../types.js";
 
-/**
- * This is the entire product, in one function: when a lead comes in,
- * we put CALL-E on the phone with them before a human sales rep could
- * have even opened the CRM tab. CALL-E is genuinely invoked here at
- * runtime — this is not a mock or a text-generation stand-in.
- */
 export async function qualifyLeadByCall(lead: Lead, webhookUrl: string) {
   const task = buildTask(lead);
 
