@@ -546,7 +546,7 @@ export default function GhostLeadDashboard() {
         <header className="py-5 flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-3">
             <div className="w-11 h-11 rounded-2xl flex items-center justify-center shadow-[0_0_20px_rgba(198,255,74,0.4)]" style={{ background: "var(--grad-primary)" }}>
-              <GhostMark mood={connected ? "awake" : "sleepy"} size={26} className="text-[#0A0B10] float" />
+              <GhostMark mood={connected ? "awake" : "sleepy"} size={26} className="text-[#0A0B10] float" eyeColor="#F5F6FA" />
             </div>
             <div className="leading-tight">
               <div className="flex items-center gap-2 flex-wrap">
@@ -564,7 +564,7 @@ export default function GhostLeadDashboard() {
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pb-6">
           <MetricCard
-            icon={<GhostMark mood="awake" size={17} />}
+            icon={<GhostMark mood="awake" size={17} eyeColor="#F5F6FA" />}
             label="Leads received"
             value={leads.length}
             caption={leads.length === 0 ? "Waiting for first lead" : `${resolved.length} resolved so far`}
