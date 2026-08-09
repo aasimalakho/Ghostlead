@@ -409,7 +409,7 @@ function Hero({ connected }) {
           </h1>
           <p className="text-[14px] text-[var(--muted)] leading-relaxed">
             {connected
-              ? "Your lead response engine is online and waiting for the next opportunity."
+              ? "Built for real estate and auto dealerships — GhostLead calls every new lead within seconds so they never go cold."
               : "Reconnecting to your lead response engine — this only takes a moment."}
           </p>
         </div>
@@ -696,6 +696,7 @@ export default function GhostLeadDashboard() {
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-display font-extrabold text-[21px] tracking-tight text-[var(--ink)]">GhostLead</span>
                 <span className="text-[11px] font-mono uppercase tracking-wider text-[var(--neon)] bg-[var(--neon-dim)] px-2 py-0.5 rounded-full">Response Console</span>
+                <span className="text-[11px] font-mono uppercase tracking-wider text-[var(--cyan)] bg-[var(--cyan-bg)] px-2 py-0.5 rounded-full">Real Estate & Auto Leads</span>
               </div>
             </div>
           </div>
