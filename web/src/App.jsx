@@ -3,7 +3,16 @@
 // renders whatever leads actually exist, in their real CALL-E-reported
 // state. No mock data generator here anymore.
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { ArrowUpRight, Flame, Radio, RefreshCw, Search, PhoneCall, Sparkles } from "lucide-react";
+import { ArrowUpRight, Flame, Radio, RefreshCw, Search, PhoneCall, Sparkles, Send, X, ChevronDown, CheckCircle2, AlertCircle } from "lucide-react";
+
+const LEAD_SOURCES = ["website_form", "zillow", "facebook_ad", "autotrader", "referral"];
+const SOURCE_LABELS = {
+  website_form: "Website form",
+  zillow: "Zillow",
+  facebook_ad: "Facebook ad",
+  autotrader: "Autotrader",
+  referral: "Referral",
+};
 
 // Vite bakes VITE_* vars in at build time — set VITE_API_URL in your host's
 // env vars (Render: Static Site -> Environment) and rebuild for it to apply.
@@ -111,7 +120,7 @@ function DesignTokens() {
 /* communicates state: full neon glow while live, dimming to a faint  */
 /* outline once a lead goes cold.                                     */
 /* ------------------------------------------------------------------ */
-function GhostMark({ mood = "awake", size = 28, className = "", style = {} }) {
+function GhostMark({ mood = "awake", size = 28, className = "", style = {}, eyeColor = "#0A0B10" }) {
   const moods = {
     awake: { opacity: 1, eye: "M 22 27 a 3 3 0 1 1 0.1 0 M 42 27 a 3 3 0 1 1 0.1 0", blush: true },
     sleepy: { opacity: 0.55, eye: "M 18 27 h 8 M 38 27 h 8", blush: false },
@@ -133,11 +142,11 @@ function GhostMark({ mood = "awake", size = 28, className = "", style = {} }) {
         d="M32 6c12.15 0 22 9.85 22 22v24.5c0 1.9-2.1 3-3.66 1.9l-4.5-3.2a2.3 2.3 0 0 0-2.68 0l-4.5 3.2a2.3 2.3 0 0 1-2.66 0l-4.5-3.2a2.3 2.3 0 0 0-2.68 0l-4.5 3.2a2.3 2.3 0 0 1-2.66 0l-4.5-3.2a2.3 2.3 0 0 0-2.68 0l-4.5 3.2C12.6 56.5 10 55.4 10 53.5V28C10 15.85 19.85 6 32 6Z"
         fill="currentColor"
       />
-      <path d={m.eye} stroke="#0A0B10" strokeWidth="3" strokeLinecap="round" />
+      <path d={m.eye} stroke={eyeColor} strokeWidth="3" strokeLinecap="round" />
       {m.blush && (
         <>
-          <ellipse cx="15" cy="32" rx="3.2" ry="2.2" fill="#0A0B10" opacity="0.18" />
-          <ellipse cx="49" cy="32" rx="3.2" ry="2.2" fill="#0A0B10" opacity="0.18" />
+          <ellipse cx="15" cy="32" rx="3.2" ry="2.2" fill={eyeColor} opacity="0.18" />
+          <ellipse cx="49" cy="32" rx="3.2" ry="2.2" fill={eyeColor} opacity="0.18" />
         </>
       )}
     </svg>
@@ -166,6 +175,19 @@ function PrimaryButton({ children, onClick, className = "", type = "button" }) {
       className={`gl-btn inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[#0A0B10] text-[13px] font-bold shadow-[0_6px_18px_rgba(198,255,74,0.35)] hover:shadow-[0_10px_26px_rgba(198,255,74,0.5)] ${className}`}
       style={{ background: "var(--grad-primary)" }}
     >
+      {children}
+    </button>
+  );
+}
+
+function SecondaryButton({ children, onClick, icon: Icon, className = "", type = "button" }) {
+  return (
+    <button
+      type={type}
+      onClick={onClick}
+      className={`gl-btn inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[13px] font-semibold border border-[var(--border)] bg-[var(--surface-tint)] text-[var(--ink)] hover:border-[var(--neon)] hover:text-[var(--neon)] ${className}`}
+    >
+      {Icon && <Icon size={14} />}
       {children}
     </button>
   );
@@ -465,6 +487,127 @@ function ActivityPanel({ leadsCount }) {
   );
 }
 
+/* ------------------------------------------------------------------ */
+/* TestLeadForm — sends a real lead straight through the same          */
+/* POST /api/leads endpoint curl would hit. Not a simulation: this     */
+/* triggers a genuine CALL-E call to whatever phone number is entered. */
+/* Fields/validation mirror src/routes/leads.ts and src/types.ts       */
+/* exactly (name, phone, source required; region/locale/interest opt). */
+/* ------------------------------------------------------------------ */
+function TestLeadForm({ onClose }) {
+  const [form, setForm] = useState({ name: "", phone: "", source: "website_form", region: "", locale: "", interest: "" });
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(false);
+
+  const update = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSending(true);
+    setError(null);
+    setSuccess(false);
+
+    const payload = { name: form.name.trim(), phone: form.phone.trim(), source: form.source };
+    if (form.region.trim()) payload.region = form.region.trim();
+    if (form.locale.trim()) payload.locale = form.locale.trim();
+    if (form.interest.trim()) payload.interest = form.interest.trim();
+
+    try {
+      const res = await fetch(`${API_URL}/api/leads`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || `Request failed (${res.status})`);
+      }
+      setSuccess(true);
+      setForm({ name: "", phone: "", source: "website_form", region: "", locale: "", interest: "" });
+      setTimeout(() => {
+        setSuccess(false);
+        onClose();
+      }, 2200);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to send lead");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const inputCls =
+    "w-full text-[13px] px-3 py-2 rounded-xl border border-[var(--border)] bg-[var(--surface-tint)] text-[var(--ink)] outline-none focus:border-[var(--neon)] focus:ring-2 focus:ring-[var(--neon-dim)] transition";
+
+  return (
+    <form onSubmit={handleSubmit} className="rise rounded-2xl border border-[var(--neon)]/25 bg-[var(--surface-tint)] p-4 mb-3 space-y-3">
+      <div className="flex items-center justify-between">
+        <span className="text-[12px] font-mono uppercase tracking-wider text-[var(--neon)]">Send test lead</span>
+        <button type="button" onClick={onClose} className="text-[var(--muted)] hover:text-[var(--ink)]" aria-label="Close">
+          <X size={16} />
+        </button>
+      </div>
+
+      <p className="text-[12px] text-[var(--muted)] leading-relaxed -mt-1">
+        This hits the real <span className="font-mono">POST /api/leads</span> endpoint — CALL-E will actually dial the number you enter.
+      </p>
+
+      <div className="grid sm:grid-cols-2 gap-3">
+        <input required value={form.name} onChange={update("name")} placeholder="Lead name*" className={inputCls} />
+        <input required value={form.phone} onChange={update("phone")} placeholder="Phone, e.g. +14155550123*" className={inputCls} />
+      </div>
+
+      <div className="relative">
+        <select required value={form.source} onChange={update("source")} className={`${inputCls} appearance-none pr-8`}>
+          {LEAD_SOURCES.map((s) => (
+            <option key={s} value={s}>
+              {SOURCE_LABELS[s]}
+            </option>
+          ))}
+        </select>
+        <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted-2)]" />
+      </div>
+
+      <input value={form.interest} onChange={update("interest")} placeholder="What are they interested in? (optional)" className={inputCls} />
+
+      <button
+        type="button"
+        onClick={() => setShowAdvanced((v) => !v)}
+        className="flex items-center gap-1 text-[11px] font-mono uppercase tracking-wide text-[var(--muted)] hover:text-[var(--neon)]"
+      >
+        <ChevronDown size={12} className={`transition-transform ${showAdvanced ? "rotate-180" : ""}`} />
+        Advanced
+      </button>
+
+      {showAdvanced && (
+        <div className="grid sm:grid-cols-2 gap-3">
+          <input value={form.region} onChange={update("region")} placeholder="Region (optional, e.g. US)" className={inputCls} />
+          <input value={form.locale} onChange={update("locale")} placeholder="Locale (optional, e.g. en-US)" className={inputCls} />
+        </div>
+      )}
+
+      {error && (
+        <div className="flex items-center gap-1.5 text-[12px] text-[var(--pink)]">
+          <AlertCircle size={13} />
+          {error}
+        </div>
+      )}
+      {success && (
+        <div className="flex items-center gap-1.5 text-[12px] text-[var(--neon)]">
+          <CheckCircle2 size={13} />
+          Lead sent — CALL-E is dialing now.
+        </div>
+      )}
+
+      <PrimaryButton type="submit" className={sending ? "opacity-70 pointer-events-none" : ""}>
+        <Send size={14} />
+        {sending ? "Sending…" : "Send lead"}
+      </PrimaryButton>
+    </form>
+  );
+}
+
 export default function GhostLeadDashboard() {
   const [leads, setLeads] = useState([]);
   const [connected, setConnected] = useState(false);
@@ -472,6 +615,7 @@ export default function GhostLeadDashboard() {
   const [streamKey, setStreamKey] = useState(0);
   const [query, setQuery] = useState("");
   const [apiHealthy, setApiHealthy] = useState(null);
+  const [showTestForm, setShowTestForm] = useState(false);
 
   // Live connection to the backend. `streamKey` lets the refresh button
   // force a clean re-subscribe without touching any backend behavior.
@@ -601,9 +745,16 @@ export default function GhostLeadDashboard() {
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-[11px] font-mono px-2 py-1 rounded-full bg-[var(--neon-dim)] text-[var(--neon)]">{leads.length}</span>
+                {!showTestForm && (
+                  <SecondaryButton icon={Send} onClick={() => setShowTestForm(true)}>
+                    Send test lead
+                  </SecondaryButton>
+                )}
                 <IconButton icon={RefreshCw} label="Reconnect live feed" onClick={handleRefresh} spinning={!connected} />
               </div>
             </div>
+
+            {showTestForm && <TestLeadForm onClose={() => setShowTestForm(false)} />}
 
             {leads.length > 0 && (
               <div className="relative mt-4 mb-3">
