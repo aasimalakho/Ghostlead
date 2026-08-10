@@ -1,59 +1,164 @@
 # GhostLead
 
-Most inbound leads (real estate, auto, insurance) go cold because no human calls back fast enough. GhostLead calls a new lead **within seconds** of them submitting a form, has a real phone conversation with them using [CALL-E](https://www.heycall-e.com/), and only hands the lead to a human rep once it's confirmed they're actually interested.
+> **Leads go cold fast. GhostLead calls them before they do.**
+
+Real estate agents, auto dealerships, and other high-ticket sellers lose deals not
+because the lead wasn't interested — but because nobody called back fast enough. By the
+time a human rep gets to a new inquiry, the lead has already moved on.
+
+GhostLead calls a new lead **within seconds** of them submitting a form, has a real
+phone conversation with them using [CALL-E](https://www.heycall-e.com/), and only hands
+the lead to a human rep once it's confirmed they're actually interested — with their
+timeline and financing status already captured.
 
 Built for the **CALL-E: Your Code Is Calling** hackathon.
 
-## How it works
+---
 
-1. A lead comes in (`POST /api/leads`) — from a website form, Zillow/Autotrader export, or a CRM automation.
-2. GhostLead immediately asks **CALL-E** to place a real outbound call and hold a short qualifying conversation (`src/calle/qualifyLead.ts`, using the `@call-e/calle` SDK's `calls.createAndWait`).
-3. CALL-E dials, talks, adapts to the conversation in real time, and returns a structured result (wants to proceed? timeline? financing in place?) — validated against the JSON schema in `src/types.ts`.
-4. CALL-E also POSTs the terminal result to our webhook (`POST /calle/webhook`) for async delivery.
-5. The lead is marked `qualified` or `cold` and the live dashboard (`web/`) updates instantly over Server-Sent Events.
+## 🎬 Demo
 
-This is a real integration, not a mock: `qualifyLeadByCall` genuinely imports and calls the CALL-E SDK at runtime.
+- **Live Dashboard:** https://ghostlead-xujm.onrender.com
+- **Backend API:** https://ghostlead-api.onrender.com
+- **Repo:** https://github.com/aasimalakho/Ghostlead
+- **Demo Video:** _add link once recorded_
 
-## Repo layout
+---
+
+## ⚡ Watch a Lead Get Called Before It Goes Cold
+
+```
+Lead submits a form
+        |
+POST /api/leads — GhostLead receives it instantly
+        |
+qualifyLeadByCall() asks CALL-E to place a real outbound call
+        |
+CALL-E dials, talks, adapts in real time — not a script read aloud
+        |
+CALL-E returns a structured result: proceed? timeline? financing in place?
+        |
+Result is also POSTed to /calle/webhook for async delivery
+        |
+Lead flips to Qualified or Ghosted — live, over Server-Sent Events
+        |
+A human rep only ever sees leads that are already worth their time
+```
+
+No step is faked. `qualifyLeadByCall` genuinely imports and calls the CALL-E SDK
+(`@call-e/calle`, `calls.createAndWait`) at runtime — this is a real phone call, not a
+simulation.
+
+---
+
+## ✨ What Makes GhostLead Different
+
+### It calls, it doesn't queue
+Most lead-response tools file a lead into a CRM and hope a human gets to it soon.
+GhostLead picks up the phone itself, immediately.
+
+### It's a real conversation, not a script
+CALL-E adapts to what the lead actually says, in real time — the transcript summary
+and structured qualification data reflect a genuine back-and-forth, not a fixed IVR tree.
+
+### It only escalates real interest
+A human rep never has to sift through cold leads. GhostLead only marks a lead
+`qualified` once CALL-E has confirmed intent, timeline, and financing status on the
+call itself.
+
+### Built for the leads that actually convert
+GhostLead is scoped for real estate and auto dealership leads specifically — the exact
+qualifying questions CALL-E asks (timeline, financing/pre-approval in place) match how
+those deals actually get won or lost.
+
+---
+
+## 🧠 How It Works
+
+| Component | Responsibility |
+|---|---|
+| 📥 Lead Intake (`src/routes/leads.ts`) | Validates and accepts new leads via `POST /api/leads` |
+| 📞 CALL-E Qualifier (`src/calle/qualifyLead.ts`) | Builds the call task and asks CALL-E to place and hold the qualifying call |
+| 🪝 Webhook Receiver (`src/routes/webhook.ts`) | Accepts CALL-E's async terminal result via `POST /calle/webhook` |
+| 🗂️ Live Store (`src/store/`) | Holds lead state in memory and broadcasts every change |
+| 📡 SSE Stream (`GET /api/leads/stream`) | Pushes live updates to the dashboard the instant a lead's status changes |
+| 🖥️ Dashboard (`web/`) | React console showing incoming leads, the active call, and qualification results in real time |
+
+---
+
+## 🔗 CALL-E Integration
+
+Every outbound call goes through one place — `qualifyLeadByCall`
+(`src/calle/qualifyLead.ts`) — which uses the official `@call-e/calle` SDK's
+`calls.createAndWait` to place a real call and wait for a structured result.
+
+**What CALL-E is asked to do:** introduce itself based on the lead's source (website
+form, Zillow, Facebook ad, Autotrader, referral), confirm interest, and ask about
+timeline and financing/pre-approval — all conversationally, under 90 seconds, per the
+task prompt built in `qualifyLead.ts`.
+
+**What comes back:** a structured result validated against the schema in
+`src/types.ts` (`wants_to_proceed`, `timeline`, `financing_in_place`, plus a transcript
+summary), delivered either directly from `createAndWait` or asynchronously via the
+`/calle/webhook` receiver.
+
+There is no demo/mock mode — `src/calle/client.ts` throws a clear startup error if
+`CALLE_API_KEY` isn't set, so every call this project makes is a real one.
+
+---
+
+## 🚀 Features
+
+- ⚡ Calls a new lead within seconds of submission — no queue, no human delay
+- 📞 Real CALL-E phone conversation, not a chatbot or IVR tree
+- 🧾 Structured qualification output: intent, timeline, financing status
+- 🪝 Async webhook delivery for terminal call results
+- 📡 Live dashboard over Server-Sent Events — no polling, no refresh needed
+- 🧪 Built-in "Send test lead" form in the dashboard — hits the real `/api/leads`
+  endpoint directly, no curl required
+- 🎯 Scoped to a real vertical (real estate & auto leads), not a generic concept
+- 🐳 Optional Docker/Compose setup for the backend
+
+---
+
+## 🛠 Tech Stack
+
+- **Backend:** Express + TypeScript, `@call-e/calle` SDK
+- **Frontend:** Vite + React + Tailwind CSS
+- **Realtime:** Server-Sent Events (native, no extra dependency)
+- **Deployment:** Render (Web Service for the API, Static Site for the dashboard)
+- **Dev environment:** GitHub Codespaces-ready
+
+---
+
+## 📁 Repository Layout
 
 ```
 ghostlead/
-├── src/                  Backend (Express + TypeScript)
-│   ├── calle/             CALL-E SDK client + call-building logic
-│   ├── routes/            /api/leads intake + /calle/webhook receiver
-│   ├── store/              in-memory lead store + live SSE broadcast
+├── src/                    Backend (Express + TypeScript)
+│   ├── calle/               CALL-E SDK client + call-building logic
+│   ├── routes/               /api/leads intake + /calle/webhook receiver
+│   ├── store/                 in-memory lead store + live SSE broadcast
 │   └── server.ts
-├── web/                   Frontend dashboard (Vite + React + Tailwind)
-├── examples/              Sample lead payload for testing
-├── scripts/                Convenience seed script
-├── docs/SUBMISSION.md      Hackathon submission checklist
+├── web/                     Frontend dashboard (Vite + React + Tailwind)
+├── examples/                Sample lead payload for testing
+├── scripts/                  Convenience seed script
+├── docs/SUBMISSION.md        Hackathon submission checklist
 ├── Dockerfile / docker-compose.yml
 └── .env.example
 ```
 
-## Requirements
+---
 
-- Node.js 20+
-- A CALL-E account and API key (see below — **yes, you need one**)
-- (Optional) Docker, if you'd rather run the API in a container
-- (Optional) `ngrok` or similar, if you want CALL-E's webhook to reach your laptop during local dev
+## 🚀 Getting Started
 
-## 1. Get a CALL-E API key
+**1. Get a CALL-E API key** — this is the whole point of the project, so it's required,
+not optional. Follow the install guide at
+<https://github.com/CALLE-AI/call-e-integrations>; new accounts get 20 free calls.
 
-CALL-E is the whole point of this project, so you do need real credentials:
-
-1. Follow the install guide: <https://github.com/CALLE-AI/call-e-integrations>
-2. Sign up — new accounts get **20 free calls** automatically.
-3. Grab your `CALLE_API_KEY` and `CALLE_BASE_URL` from your CALL-E account/onboarding (the SDK is in beta, so the exact dashboard location may shift — check the docs above if unsure).
-
-## 2. Configure
-
+**2. Configure**
 ```bash
 cp .env.example .env
 ```
-
-Fill in:
-
 ```
 CALLE_API_KEY=your_key_here
 CALLE_BASE_URL=your_base_url_here
@@ -61,70 +166,73 @@ PORT=3000
 PUBLIC_BASE_URL=http://localhost:3000
 ```
 
-`PUBLIC_BASE_URL` is only load-bearing if you want CALL-E's webhook to reach your machine — see step 5.
-
-## 3. Run the backend
-
+**3. Run the backend**
 ```bash
 npm install
 npm run dev
 ```
 
-This starts the API on `http://localhost:3000`.
-
-## 4. Run the dashboard
-
-In a second terminal:
-
+**4. Run the dashboard** (second terminal)
 ```bash
 cd web
 npm install
 npm run dev
 ```
+Open `http://localhost:5173`.
 
-Open `http://localhost:5173`. Note: the dashboard ships in **demo/simulation mode** (it animates mock leads on its own) so it's watchable and recordable without needing a live phone call. Wiring it to the live `/api/leads/stream` endpoint instead of the built-in simulator is a one-line swap in `web/src/App.jsx` — see the comment at the top of that file.
-
-## 5. Send a real lead through CALL-E
-
+**5. Send a real lead through CALL-E** — either use the **"Send test lead"** form
+directly in the dashboard, or:
 ```bash
 npm run seed
 ```
-
 or manually:
-
 ```bash
 curl -X POST http://localhost:3000/api/leads \
   -H "Content-Type: application/json" \
   -d @examples/sample-lead.json
 ```
+**Use a real phone number you can answer** — it will actually call it.
 
-**Use your own phone number in `examples/sample-lead.json` before running this** — it will really call it.
-
-### Webhooks (optional, for async result delivery)
-
-If you want CALL-E to be able to POST results back to your machine while developing locally:
-
+**Optional — webhooks during local dev:**
 ```bash
 ngrok http 3000
 ```
+Copy the `https://...ngrok...` URL into `PUBLIC_BASE_URL` in `.env` and restart. When
+deployed, set `PUBLIC_BASE_URL` to your real deployed backend URL instead.
 
-Copy the `https://...ngrok...` URL into `PUBLIC_BASE_URL` in `.env`, restart `npm run dev`. When deployed for real, set `PUBLIC_BASE_URL` to your deployed URL instead.
-
-## 6. Run with Docker (optional)
-
+**Optional — Docker:**
 ```bash
 docker compose up --build
 ```
+Reads the same `.env` file. The frontend isn't containerized — run it with `npm run dev`
+in `web/` alongside the container.
 
-Reads the same `.env` file. The frontend isn't containerized yet (see the note in `docker-compose.yml`) — run it with `npm run dev` in `web/` alongside the container.
+---
 
 ## Do you need an API key?
 
-**Yes — for CALL-E.** Without `CALLE_API_KEY` and `CALLE_BASE_URL` set, the server throws a clear error on startup rather than failing silently (`src/calle/client.ts`). Nothing else in this repo requires a key: no database, no third-party auth, no paid frontend services.
+**Yes — for CALL-E.** Without `CALLE_API_KEY` and `CALLE_BASE_URL` set, the server
+throws a clear error on startup rather than failing silently. Nothing else in this repo
+requires a key — no database, no third-party auth, no paid frontend services.
 
-## Hackathon submission
+---
 
-See [`docs/SUBMISSION.md`](docs/SUBMISSION.md) for the exact steps (PR to CALL-E's public repo, Devpost form, demo video).
+## 🏆 Hackathon Project
+
+GhostLead was built for CALL-E's **"Your Code Is Calling"** hackathon, exploring what
+happens when an AI agent doesn't just *analyze* a lead, but actually calls them —
+in real time, with a real outcome, before a human ever has to.
+
+---
+
+## ❤️ Thanks
+
+Thanks to the CALL-E team for building an API that makes a genuinely useful phone call
+possible with a few lines of code, instead of a wall of telephony infrastructure.
+
+---
+
+## ⭐ If you find GhostLead interesting, consider starring this repository!
 
 ## License
 
